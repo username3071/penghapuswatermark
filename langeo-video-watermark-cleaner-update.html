@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LANGEO Video Watermark Cleaner</title>
+<style>
+:root{color-scheme:dark;--bg:#071426;--panel:#10243e;--line:#294665;--blue:#258cff;--muted:#a9bed5}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#17375b 0,transparent 38%),var(--bg);color:#f4f8ff;font:15px/1.5 system-ui,Arial,sans-serif}
+main{max-width:960px;margin:auto;padding:25px 16px 55px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.7px}.logo{height:40px;width:40px;border-radius:13px;background:linear-gradient(135deg,#51b7ff,#1764d4);display:grid;place-items:center;font-size:21px}
+h1{font-size:clamp(28px,5vw,44px);line-height:1.08;margin:34px 0 10px}h1 span{color:#64b9ff}.sub{color:var(--muted);max-width:720px}
+.panel{background:#10243eeb;border:1px solid var(--line);border-radius:18px;padding:19px;margin:16px 0;box-shadow:0 15px 35px #0003}
+.upload{display:block;text-align:center;padding:25px;border:2px dashed #47739f;border-radius:14px;background:#0a1b30;cursor:pointer}.upload b{display:block;font-size:17px}.upload small,.hint{color:var(--muted);font-size:13px}
+input[type=file]{display:none}button,.download{border:0;border-radius:10px;padding:11px 16px;background:var(--blue);color:white;font-weight:750;cursor:pointer;text-decoration:none;display:inline-block}button:disabled{opacity:.4;cursor:not-allowed}.secondary{background:#294665}.danger{background:#713b49}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.videoWrap{display:none;position:relative;background:#020812;border-radius:12px;overflow:hidden;margin-top:14px;touch-action:none}video{display:block;width:100%;max-height:480px}#rect{position:absolute;display:none;border:2px solid #6bc3ff;background:#319fff38;pointer-events:none}
+.controls{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}.fields{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.field{flex:1;min-width:125px}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.field input{width:100%;padding:10px;border:1px solid #3b5c7d;background:#091a2d;color:white;border-radius:9px}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #29415d}th{color:#9fc4e9}
+.notice{padding:13px;border-radius:10px;background:#302b1e;border-left:3px solid #e6b85d;color:#f5e4bd;font-size:13px}
+.status{color:#90cbff;min-height:23px;margin-top:10px}.progress{height:7px;background:#28415d;border-radius:9px;overflow:hidden;display:none;margin-top:10px}.bar{height:100%;width:0;background:#55b7ff}
+footer{text-align:center;color:#7891aa;font-size:12px;margin-top:24px}
+@media(max-width:600px){.panel{padding:14px}main{padding:18px 12px 40px}table{font-size:12px}}
+</style></head>
+<body><main>
+<div class="brand"><div class="logo">✦</div> LANGEO VIDEO CLEANER</div>
+<h1>Hapus watermark<br><span>di sepanjang video.</span></h1>
+<p class="sub">Versi update: tandai beberapa posisi watermark pada waktu yang berbeda. Cocok untuk watermark yang berpindah tempat atau muncul pada bagian video tertentu.</p>
+
+<section class="panel">
+<label class="upload" for="file"><b>＋ Pilih video</b><small>Ketuk untuk memilih video dari perangkat</small></label>
+<input id="file" type="file" accept="video/*">
+<div class="videoWrap" id="wrap"><video id="video" controls playsinline></video><div id="rect"></div></div>
+<div class="row" style="margin-top:12px"><span class="hint" id="info">Belum ada video.</span><button class="secondary" id="clear" disabled>Ganti video</button></div>
+</section>
+
+<section class="panel">
+<div class="row"><b>1. Tandai posisi watermark</b><span class="hint">Bisa lebih dari satu posisi</span></div>
+<p class="hint">Putar atau geser video ke waktu watermark berada di lokasi tertentu. Seret kotak pada watermark, lalu simpan rentang waktunya. Ulangi untuk lokasi berikutnya.</p>
+<div class="fields">
+<div class="field"><label>Mulai (detik)</label><input id="start" type="number" min="0" step=".1" value="0"></div>
+<div class="field"><label>Sampai (detik)</label><input id="end" type="number" min="0" step=".1" value="5"></div>
+</div>
+<div class="controls"><button id="save" disabled>＋ Simpan area pada rentang waktu</button><button class="secondary" id="reset" disabled>Batalkan kotak</button></div>
+<div class="hint" id="picked" style="margin-top:9px">Belum ada area dipilih. Gunakan kotak pada pratinjau video.</div>
+<div style="overflow-x:auto"><table><thead><tr><th>Waktu</th><th>Area (x, y, l, t)</th><th></th></tr></thead><tbody id="segments"><tr><td colspan="3" class="hint">Belum ada area tersimpan.</td></tr></tbody></table></div>
+</section>
+
+<section class="panel">
+<div class="row"><b>2. Proses dan unduh</b><span class="hint">Hasil MP4</span></div>
+<p class="hint">Setiap area hanya diterapkan pada rentang waktu yang kamu tentukan. Untuk watermark bergerak, buat beberapa rentang dengan posisi berbeda.</p>
+<div class="controls"><button id="process" disabled>✦ Bersihkan video</button><a id="download" class="download" style="display:none">Unduh video hasil</a></div>
+<div class="progress" id="progress"><div class="bar" id="bar"></div></div><div class="status" id="status" aria-live="polite"></div>
+</section>
+<div class="notice"><b>Batasan yang perlu diketahui:</b> Ini adalah penghapus berbasis area FFmpeg, bukan AI generatif. Watermark diam dan watermark yang berpindah bisa ditangani dengan menambahkan beberapa rentang secara manual. Untuk logo bergerak terus-menerus, buat banyak titik/rentang pendek. Watermark transparan, bergerak rumit, atau menutupi objek dapat meninggalkan bekas. Gunakan hanya pada video milikmu atau yang kamu punya izin untuk edit.</div>
+<footer>Pemrosesan dilakukan di browser. File video tidak dikirim ke server website ini.</footer>
+</main>
+<script type="module">
+import {FFmpeg} from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
+import {toBlobURL} from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js';
+const $=id=>document.getElementById(id),v=$('video'),wrap=$('wrap'),rect=$('rect');
+const ff=new FFmpeg();let loaded=false,file=null,url=null,box=null,drag=false,origin=null,segments=[],outUrl=null;
+function status(s){$('status').textContent=s}
+function fmt(n){return Number(n).toFixed(1)}
+function update(){
+ const body=$('segments');body.innerHTML='';
+ if(!segments.length){body.innerHTML='<tr><td colspan="3" class="hint">Belum ada area tersimpan.</td></tr>'}
+ segments.forEach((s,i)=>{let tr=document.createElement('tr');tr.innerHTML=`<td>${fmt(s.a)}–${fmt(s.b)} dtk</td><td>${s.x}, ${s.y}, ${s.w}, ${s.h}</td><td><button class="danger" data-i="${i}" style="padding:6px 9px">Hapus</button></td>`;body.appendChild(tr)});
+ body.querySelectorAll('button').forEach(b=>b.onclick=()=>{segments.splice(+b.dataset.i,1);update()});
+ $('process').disabled=!file||!segments.length;
+}
+$('file').onchange=e=>{
+ const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith('video/')){status('Pilih file video.');return}
+ file=f;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);v.src=url;wrap.style.display='block';segments=[];box=null;rect.style.display='none';
+ $('info').textContent=f.name+' · '+(f.size/1048576).toFixed(1)+' MB';$('clear').disabled=false;$('reset').disabled=false;$('save').disabled=false;
+ v.onloadedmetadata=()=>{$('start').value='0';$('end').value=Math.min(5,v.duration).toFixed(1);$('end').max=v.duration};
+ update();status('Video siap. Geser ke waktu watermark terlihat, lalu tandai areanya.');
+};
+$('clear').onclick=()=>{file=null;segments=[];box=null;v.pause();v.removeAttribute('src');v.load();wrap.style.display='none';$('file').value='';$('info').textContent='Belum ada video.';$('clear').disabled=true;$('save').disabled=true;$('reset').disabled=true;rect.style.display='none';$('download').style.display='none';update();status('')};
+function point(e){let r=v.getBoundingClientRect();return{x:Math.max(0,Math.min(r.width,e.clientX-r.left)),y:Math.max(0,Math.min(r.height,e.clientY-r.top))}}
+function draw(){rect.style.left=box.x+'px';rect.style.top=box.y+'px';rect.style.width=box.w+'px';rect.style.height=box.h+'px';rect.style.display='block'}
+v.addEventListener('pointerdown',e=>{if(!file)return;origin=point(e);box={x:origin.x,y:origin.y,w:0,h:0};drag=true;v.setPointerCapture(e.pointerId);draw()});
+v.addEventListener('pointermove',e=>{if(!drag)return;let p=point(e);box={x:Math.min(origin.x,p.x),y:Math.min(origin.y,p.y),w:Math.abs(p.x-origin.x),h:Math.abs(p.y-origin.y)};draw()});
+v.addEventListener('pointerup',()=>{if(!drag)return;drag=false;$('picked').textContent=box.w>4&&box.h>4?'Kotak dipilih. Atur rentang waktu, lalu simpan area.':'Kotak terlalu kecil, coba lagi.'});
+$('reset').onclick=()=>{box=null;rect.style.display='none';$('picked').textContent='Kotak dibatalkan.'};
+$('save').onclick=()=>{
+ if(!box||box.w<5||box.h<5){status('Tandai area watermark pada video terlebih dahulu.');return}
+ let a=Number($('start').value),b=Number($('end').value);
+ if(!Number.isFinite(a)||!Number.isFinite(b)||a<0||b<=a||b>v.duration){status('Rentang waktu tidak valid. Pastikan sampai lebih besar dari mulai dan tidak melebihi durasi.');return}
+ const r=v.getBoundingClientRect(),sx=v.videoWidth/r.width,sy=v.videoHeight/r.height;
+ segments.push({a,b,x:Math.round(box.x*sx),y:Math.round(box.y*sy),w:Math.max(1,Math.round(box.w*sx)),h:Math.max(1,Math.round(box.h*sy))});
+ segments.sort((p,q)=>p.a-q.a);update();$('picked').textContent='Area tersimpan. Tandai posisi lain jika watermark berpindah.';box=null;rect.style.display='none';status('Area tersimpan. Tambahkan area lain bila diperlukan.');
+};
+$('process').onclick=async()=>{
+ if(!file||!segments.length)return;$('process').disabled=true;$('download').style.display='none';status('Menyiapkan mesin video…');
+ try{
+  if(!loaded){
+   ff.on('progress',({progress})=>{$('progress').style.display='block';$('bar').style.width=Math.round(progress*100)+'%'});
+   const base='https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+   await ff.load({coreURL:await toBlobURL(base+'/ffmpeg-core.js','text/javascript'),wasmURL:await toBlobURL(base+'/ffmpeg-core.wasm','application/wasm')});loaded=true;
+  }
+  const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const input='source.'+ext,output='langeo-cleaned.mp4';
+  await ff.writeFile(input,new Uint8Array(await file.arrayBuffer()));
+  const filters=segments.map(s=>`delogo=x=${s.x}:y=${s.y}:w=${s.w}:h=${s.h}:show=0:enable='between(t,${s.a},${s.b})'`).join(',');
+  status('Memproses area watermark sesuai rentang waktu…');
+  await ff.exec(['-i',input,'-vf',filters,'-c:v','libx264','-preset','ultrafast','-crf','20','-c:a','aac','-b:a','128k','-movflags','+faststart',output]);
+  const data=await ff.readFile(output);if(outUrl)URL.revokeObjectURL(outUrl);outUrl=URL.createObjectURL(new Blob([data.buffer],{type:'video/mp4'}));
+  const a=$('download');a.href=outUrl;a.download='langeo-video-bersih.mp4';a.style.display='inline-block';status('Selesai! Unduh hasilnya dan periksa apakah bekas watermark sudah cukup bersih.');
+  await ff.deleteFile(input);await ff.deleteFile(output);
+ }catch(err){console.error(err);status('Gagal memproses. Coba video MP4 yang lebih kecil. '+(err?.message||err))}
+ finally{$('process').disabled=false}
+};
+</script></body></html>
